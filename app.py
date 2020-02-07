@@ -24,44 +24,22 @@ import dash_table
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import requests
 from dash.dependencies import Input, Output
 from plotly import tools
 
 app = dash.Dash(__name__)
-bar_colors = ["#33425b", "#5baaec", "#526ed0", "#484cb0"]
-ncov_trend = pd.read_csv("ncov_trend.csv", index_col=0)
+colors = ["#E51017", "#FFF210", "#0AFC6F", "#0A0603"]
 with open(".mapboxtoken", "r") as f:
     token = f.read()
 
 with open("china.geojson") as f:
-    provinces = json.load(f)
-df = pd.read_csv("province_one_day_data.csv")
-fig = go.Figure(
-    go.Choroplethmapbox(
-        featureidkey="properties.NL_NAME_1",
-        geojson=provinces,
-        locations=df.province,
-        z=df["count"],
-        colorscale="Reds",
-        zmin=0,
-        zmax=1000,
-        # zauto=True,
-        marker_opacity=0.5,
-        marker_line_width=0,
-    )
-)
-fig.update_layout(
-    mapbox_style="carto-darkmatter",
-    mapbox_zoom=3,
-    mapbox_center={"lat": 35.110573, "lon": 106.493924},
-    mapbox_accesstoken=token,
-)
-fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    provinces_map = json.load(f)
 
 apis = {
     "qq": "https://service-n9zsbooc-1252957949.gz.apigw.tencentcs.com/release/qq",
-    "dxy": "",
+    "dxy": "https://service-0gg71fu4-1252957949.gz.apigw.tencentcs.com/release/dingxiangyuan",
     "province_city_history": "http://ncov.nosensor.com:8080/api/",
 }
 
@@ -77,133 +55,99 @@ app.layout = html.Div(
         html.Div(id="update-time-text", style={"margin-left": "20px"}),
         html.Div(
             id="number_plate",
-            style={"marginLeft": "1.5%", "marginRight": "1.5%", "marginBottom": ".5%"},
+            style={
+                "marginLeft": "1.5%",
+                "marginRight": "1.5%",
+                "marginBottom": ".5%",
+                "marginTop": ".5%",
+            },
             children=[
                 html.Div(
                     style={
                         "width": "22%",
-                        "backgroundColor": "#cbd2d3",
+                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
-                        "verticalAlign": "top",
                     },
                     children=[
-                        html.H3(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#d7191c",
-                            },
+                        daq.LEDDisplay(
                             id="confirmed-count",
-                        ),
-                        html.P(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#ffffbf",
-                                "padding": ".1rem",
-                            },
-                            children="确诊总计",
-                        ),
+                            label="确诊总计",
+                            color=colors[0],
+                            size=50,
+                            labelPosition="bottom",
+                        )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        "backgroundColor": "#cbd2d3",
+                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
-                        "verticalAlign": "top",
                     },
                     children=[
-                        html.H3(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#d7191c",
-                            },
-                            id='suspected-count',
-                        ),
-                        html.P(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#ffffbf",
-                                "padding": ".1rem",
-                            },
-                            children="疑似总计",
-                        ),
+                        daq.LEDDisplay(
+                            id="suspected-count",
+                            label="疑似总计",
+                            color=colors[1],
+                            size=50,
+                            labelPosition="bottom",
+                        )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        "backgroundColor": "#cbd2d3",
+                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
-                        "verticalAlign": "top",
                     },
                     children=[
-                        html.H3(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#d7191c",
-                            },
-                            id='dead-count',
-                        ),
-                        html.P(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#ffffbf",
-                                "padding": ".1rem",
-                            },
-                            children="治愈总计",
-                        ),
+                        daq.LEDDisplay(
+                            id="cured-count",
+                            label="治愈总计",
+                            color=colors[2],
+                            size=50,
+                            labelPosition="bottom",
+                        )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        "backgroundColor": "#cbd2d3",
+                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
-                        "verticalAlign": "top",
                     },
                     children=[
-                        html.H3(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#d7191c",
-                            },
-                            id='cured-count',
-                        ),
-                        html.P(
-                            style={
-                                "textAlign": "center",
-                                "fontWeight": "bold",
-                                "color": "#ffffbf",
-                                "padding": ".1rem",
-                            },
-                            children="死亡总计",
-                        ),
+                        daq.LEDDisplay(
+                            id="dead-count",
+                            label="死亡总计",
+                            color=colors[3],
+                            size=50,
+                            labelPosition="bottom",
+                        )
                     ],
                 ),
             ],
         ),
-        dcc.Interval(id="interval-component", interval=10000 * 1000, n_intervals=0),
-        dcc.Graph(id="confirmed"),
-        dcc.Graph(id="dead"),
-        dcc.Graph(id="map", figure=fig, style={"height": "600px"}),
+        dcc.Interval(id="interval-component", interval=10 * 60 * 1000, n_intervals=0),
+        dcc.Graph(id="trend"),
+        dcc.Graph(
+            id="map",
+            style={
+                "height": "600px",
+                "width": "90%",
+                "marginRight": "5%",
+                "marginLeft": "5%",
+            },
+        ),
     ]
 )
 
 
-@app.callback(
-    Output("confirmed", "figure"), [Input("interval-component", "n_intervals")]
-)
+@app.callback(Output("trend", "figure"), [Input("interval-component", "n_intervals")])
 def update_graph(n):
     r = requests.get(apis["qq"])
     r.raise_for_status()
@@ -217,59 +161,36 @@ def update_graph(n):
         *sorted(zip(dates, confirmeds, suspecteds, deads, cureds))
     )
 
-    fig = go.Figure()
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
     trace_confirmed = go.Scatter(
         x=dates,
         y=confirmeds,
-        marker=dict(color=bar_colors[0]),
+        marker=dict(color=colors[0]),
         mode="lines+markers",
         name="确诊",
     )
     trace_suspected = go.Scatter(
         x=dates,
         y=suspecteds,
-        marker=dict(color=bar_colors[1]),
+        marker=dict(color=colors[1]),
         mode="lines+markers",
         name="疑似",
     )
-
-    fig.add_traces([trace_confirmed, trace_suspected])
-    margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
-    fig["layout"].update(margin=margin, showlegend=True)
-    return fig
-
-
-@app.callback(Output("dead", "figure"), [Input("interval-component", "n_intervals")])
-def update_graph(n):
-    r = requests.get(apis["qq"])
-    r.raise_for_status()
-    res = r.json()
-    data = res["data"]["wuwei_ww_cn_day_counts"]
-    dates, confirmeds, suspecteds, deads, cureds = zip(
-        *[(i["date"], i["confirm"], i["suspect"], i["dead"], i["heal"]) for i in data]
-    )
-    dates = [f"2020-{'-'.join(i.split('/'))}" for i in dates]
-    dates, confirmeds, suspecteds, deads, cureds = zip(
-        *sorted(zip(dates, confirmeds, suspecteds, deads, cureds))
-    )
-
-    fig = go.Figure()
     trace_dead = go.Scatter(
-        x=dates,
-        y=deads,
-        marker=dict(color=bar_colors[0]),
-        mode="lines+markers",
-        name="死亡",
+        x=dates, y=deads, marker=dict(color=colors[2]), mode="lines+markers", name="死亡",
     )
     trace_cured = go.Scatter(
         x=dates,
         y=cureds,
-        marker=dict(color=bar_colors[1]),
+        marker=dict(color=colors[3]),
         mode="lines+markers",
         name="治愈",
     )
 
-    fig.add_traces([trace_dead, trace_cured])
+    fig.append_trace(trace_confirmed, 1, 1)
+    fig.append_trace(trace_suspected, 1, 1)
+    fig.append_trace(trace_dead, 2, 1)
+    fig.append_trace(trace_cured, 2, 1)
     margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
     fig["layout"].update(margin=margin, showlegend=True)
     return fig
@@ -284,10 +205,10 @@ def update_time(n):
 
 @app.callback(
     [
-        Output("confirmed-count", "children"),
-        Output("suspected-count", "children"),
-        Output("dead-count", "children"),
-        Output("cured-count", "children"),
+        Output("confirmed-count", "value"),
+        Output("suspected-count", "value"),
+        Output("dead-count", "value"),
+        Output("cured-count", "value"),
     ],
     [Input("interval-component", "n_intervals")],
 )
@@ -295,12 +216,65 @@ def update_counts(n):
     r = requests.get(apis["qq"])
     r.raise_for_status()
     res = r.json()
-    confirmed = res['data']["wuwei_ww_global_vars"][0]["confirmCount"]
-    suspected = res['data']["wuwei_ww_global_vars"][0]["suspectCount"]
-    dead = res['data']["wuwei_ww_global_vars"][0]["deadCount"]
-    cured = res['data']["wuwei_ww_global_vars"][0]["cure"]
-    update_time = res['data']["wuwei_ww_global_vars"][0]["update_time"]
-    return str(confirmed), str(suspected), str(dead), str(cured)
+    confirmed = res["data"]["wuwei_ww_global_vars"][0]["confirmCount"]
+    suspected = res["data"]["wuwei_ww_global_vars"][0]["suspectCount"]
+    dead = res["data"]["wuwei_ww_global_vars"][0]["deadCount"]
+    cured = res["data"]["wuwei_ww_global_vars"][0]["cure"]
+    update_time = res["data"]["wuwei_ww_global_vars"][0]["update_time"]
+    return f"{confirmed:05d}", f"{suspected:05d}", f"{dead:05d}", f"{cured:05d}"
+
+
+@app.callback(Output("map", "figure"), [Input("interval-component", "n_intervals")])
+def update_map(n):
+    # df = pd.read_csv("test/province_one_day_data.csv")
+    r = requests.get(apis["dxy"])
+    r.raise_for_status()
+    res = r.json()
+    data = res["data"]["getAreaStat"]
+    provinces, confirmeds, suspecteds, cureds, deads = zip(
+        *[
+            (
+                i["provinceName"].rstrip("省").rstrip("市"),
+                i["confirmedCount"],
+                i["suspectedCount"],
+                i["curedCount"],
+                i["deadCount"],
+            )
+            for i in data
+        ]
+    )
+    df = pd.DataFrame(
+        data={
+            "provinces": provinces,
+            "confirmeds": confirmeds,
+            "suspecteds": suspecteds,
+            "cureds": cureds,
+            "deads": deads,
+        }
+    )
+
+    fig = go.Figure(
+        go.Choroplethmapbox(
+            featureidkey="properties.NL_NAME_1",
+            geojson=provinces_map,
+            locations=df.provinces,
+            z=df.confirmeds,
+            colorscale="Reds",
+            zmin=0,
+            zmax=1000,
+            # zauto=True,
+            marker_opacity=0.5,
+            marker_line_width=0,
+        )
+    )
+    fig.update_layout(
+        mapbox_style="carto-darkmatter",
+        mapbox_zoom=3,
+        mapbox_center={"lat": 35.110573, "lon": 106.493924},
+        mapbox_accesstoken=token,
+    )
+    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    return fig
 
 
 if __name__ == "__main__":
