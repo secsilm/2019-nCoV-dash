@@ -51,15 +51,15 @@ def timestamp2datetime(t):
 app.title = f"新型冠状病毒 2019-nCoV 疫情趋势"
 app.layout = html.Div(
     [
-        html.H1(children=f"新型冠状病毒 2019-nCoV 疫情趋势", style={"margin-left": "20px"}),
-        html.Div(id="update-time-text", style={"margin-left": "20px"}),
+        html.H1(children=f"新型冠状病毒 2019-nCoV 疫情趋势", style={"marginLeft": "3%"}),
+        html.Div(id="update-time-text", style={"marginLeft": "3%"}),
         html.Div(
             id="number_plate",
             style={
-                "marginLeft": "1.5%",
-                "marginRight": "1.5%",
-                "marginBottom": ".5%",
-                "marginTop": ".5%",
+                "marginLeft": "5%",
+                "marginRight": "5%",
+                "marginBottom": "2%",
+                "marginTop": "2%",
             },
             children=[
                 html.Div(
@@ -133,7 +133,16 @@ app.layout = html.Div(
             ],
         ),
         dcc.Interval(id="interval-component", interval=10 * 60 * 1000, n_intervals=0),
-        dcc.Graph(id="trend"),
+        dcc.Graph(
+            id="trend",
+            style={
+                "width": "90%",
+                "marginRight": "3%",
+                "marginLeft": "3%",
+                "marginTop": "2%",
+                "marginBottom": "2%",
+            },
+        ),
         dcc.Graph(
             id="map",
             style={
@@ -141,6 +150,8 @@ app.layout = html.Div(
                 "width": "90%",
                 "marginRight": "5%",
                 "marginLeft": "5%",
+                "marginTop": "2%",
+                "marginBottom": "2%",
             },
         ),
     ]
@@ -167,6 +178,7 @@ def update_graph(n):
         y=confirmeds,
         marker=dict(color=colors[0]),
         mode="lines+markers",
+        hovertemplate="确诊：%{y}<extra></extra>",
         name="确诊",
     )
     trace_suspected = go.Scatter(
@@ -174,17 +186,24 @@ def update_graph(n):
         y=suspecteds,
         marker=dict(color=colors[1]),
         mode="lines+markers",
+        hovertemplate="疑似：%{y}<extra></extra>",
         name="疑似",
-    )
-    trace_dead = go.Scatter(
-        x=dates, y=deads, marker=dict(color=colors[2]), mode="lines+markers", name="死亡",
     )
     trace_cured = go.Scatter(
         x=dates,
         y=cureds,
+        marker=dict(color=colors[2]),
+        mode="lines+markers",
+        hovertemplate="治愈：%{y}<extra></extra>",
+        name="治愈",
+    )
+    trace_dead = go.Scatter(
+        x=dates,
+        y=deads,
         marker=dict(color=colors[3]),
         mode="lines+markers",
-        name="治愈",
+        hovertemplate="死亡：%{y}<extra></extra>",
+        name="死亡",
     )
 
     fig.append_trace(trace_confirmed, 1, 1)
@@ -192,19 +211,13 @@ def update_graph(n):
     fig.append_trace(trace_dead, 2, 1)
     fig.append_trace(trace_cured, 2, 1)
     margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
-    fig["layout"].update(margin=margin, showlegend=True)
+    fig["layout"].update(margin=margin, showlegend=True, template="plotly")
     return fig
 
 
 @app.callback(
-    Output("update-time-text", "children"), [Input("interval-component", "n_intervals")]
-)
-def update_time(n):
-    return f'更新时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-
-
-@app.callback(
     [
+        Output("update-time-text", "children"),
         Output("confirmed-count", "value"),
         Output("suspected-count", "value"),
         Output("dead-count", "value"),
@@ -221,7 +234,13 @@ def update_counts(n):
     dead = res["data"]["wuwei_ww_global_vars"][0]["deadCount"]
     cured = res["data"]["wuwei_ww_global_vars"][0]["cure"]
     update_time = res["data"]["wuwei_ww_global_vars"][0]["update_time"]
-    return f"{confirmed:05d}", f"{suspected:05d}", f"{dead:05d}", f"{cured:05d}"
+    return (
+        f'更新时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+        f"{confirmed:05d}",
+        f"{suspected:05d}",
+        f"{dead:05d}",
+        f"{cured:05d}",
+    )
 
 
 @app.callback(Output("map", "figure"), [Input("interval-component", "n_intervals")])
@@ -243,28 +262,25 @@ def update_map(n):
             for i in data
         ]
     )
-    df = pd.DataFrame(
-        data={
-            "provinces": provinces,
-            "confirmeds": confirmeds,
-            "suspecteds": suspecteds,
-            "cureds": cureds,
-            "deads": deads,
-        }
-    )
 
     fig = go.Figure(
         go.Choroplethmapbox(
             featureidkey="properties.NL_NAME_1",
             geojson=provinces_map,
-            locations=df.provinces,
-            z=df.confirmeds,
+            locations=provinces,
+            z=confirmeds,
             colorscale="Reds",
             zmin=0,
             zmax=1000,
-            # zauto=True,
             marker_opacity=0.5,
             marker_line_width=0,
+            customdata=np.vstack((provinces, suspecteds, cureds, deads)).T,
+            hovertemplate="<b>%{customdata[0]}</b><br><br>"
+            + "确诊：%{z}<br>"
+            + "疑似：%{customdata[1]}<br>"
+            + "治愈：%{customdata[2]}<br>"
+            + "死亡：%{customdata[3]}<br>"
+            + "<extra></extra>",
         )
     )
     fig.update_layout(
