@@ -361,9 +361,9 @@ def update_city_map(n):
             customdata=np.vstack((cities, confirmeds, suspecteds, cureds, deads)).T,
             hovertemplate="<b>%{customdata[0]}</b><br><br>"
             + "确诊：%{customdata[1]}<br>"
-            + "疑似：%{customdata[1]}<br>"
-            + "治愈：%{customdata[2]}<br>"
-            + "死亡：%{customdata[3]}<br>"
+            + "疑似：%{customdata[2]}<br>"
+            + "治愈：%{customdata[3]}<br>"
+            + "死亡：%{customdata[4]}<br>"
             + "<extra></extra>",
         )
     )
