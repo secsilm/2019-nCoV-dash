@@ -135,3 +135,4 @@ test/
 # files
 .mapboxtoken
 *.ipynb
+cities_data.csv

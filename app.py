@@ -30,18 +30,24 @@ from dash.dependencies import Input, Output
 from plotly import tools
 
 app = dash.Dash(__name__)
-colors = ["#E51017", "#FFF210", "#0AFC6F", "#0A0603"]
+colors = ["#E51017", "#FA893A", "#307D47", "#0A0603"]
 with open(".mapboxtoken", "r") as f:
     token = f.read()
 
-with open("china.geojson") as f:
+with open("china_provinces.geojson") as f:
     provinces_map = json.load(f)
+with open("china_cities_github.geojson") as f:
+    cities_map = json.load(f)
 
 apis = {
     "qq": "https://service-n9zsbooc-1252957949.gz.apigw.tencentcs.com/release/qq",
     "dxy": "https://service-0gg71fu4-1252957949.gz.apigw.tencentcs.com/release/dingxiangyuan",
     "province_city_history": "http://ncov.nosensor.com:8080/api/",
 }
+
+# 虽然直辖市为省级，但是此处仍将其纳入市级来展示
+# 为了方便起见，台湾也计入其中
+municipalities = ['北京', '上海', '天津', '重庆', '台湾']
 
 
 def timestamp2datetime(t):
@@ -144,7 +150,7 @@ app.layout = html.Div(
             },
         ),
         dcc.Graph(
-            id="map",
+            id="province-level-map",
             style={
                 "height": "600px",
                 "width": "90%",
@@ -154,6 +160,17 @@ app.layout = html.Div(
                 "marginBottom": "2%",
             },
         ),
+        dcc.Graph(
+            id="city-level-map",
+            style={
+                "height": "600px",
+                "width": "90%",
+                "marginRight": "5%",
+                "marginLeft": "5%",
+                "marginTop": "2%",
+                "marginBottom": "2%",
+            },
+        )
     ]
 )
 
@@ -243,9 +260,8 @@ def update_counts(n):
     )
 
 
-@app.callback(Output("map", "figure"), [Input("interval-component", "n_intervals")])
-def update_map(n):
-    # df = pd.read_csv("test/province_one_day_data.csv")
+@app.callback(Output("province-level-map", "figure"), [Input("interval-component", "n_intervals")])
+def update_province_map(n):
     r = requests.get(apis["dxy"])
     r.raise_for_status()
     res = r.json()
@@ -262,21 +278,89 @@ def update_map(n):
             for i in data
         ]
     )
-
+    confirmeds_log = np.log(np.add(confirmeds, 1))
     fig = go.Figure(
         go.Choroplethmapbox(
             featureidkey="properties.NL_NAME_1",
             geojson=provinces_map,
             locations=provinces,
-            z=confirmeds,
+            z=confirmeds_log,
+            # zmin=0,
+            # zmax=1000,
+            zauto=True,
             colorscale="Reds",
-            zmin=0,
-            zmax=1000,
-            marker_opacity=0.5,
-            marker_line_width=0,
-            customdata=np.vstack((provinces, suspecteds, cureds, deads)).T,
+            reversescale=True,
+            marker_opacity=0.8,
+            marker_line_width=0.8,
+            customdata=np.vstack((provinces, confirmeds, suspecteds, cureds, deads)).T,
             hovertemplate="<b>%{customdata[0]}</b><br><br>"
-            + "确诊：%{z}<br>"
+            + "确诊：%{customdata[1]}<br>"
+            + "疑似：%{customdata[2]}<br>"
+            + "治愈：%{customdata[3]}<br>"
+            + "死亡：%{customdata[4]}<br>"
+            + "<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        mapbox_style="carto-darkmatter",
+        mapbox_zoom=3,
+        mapbox_center={"lat": 35.110573, "lon": 106.493924},
+        mapbox_accesstoken=token,
+    )
+    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    return fig
+
+
+@app.callback(Output("city-level-map", "figure"), [Input("interval-component", "n_intervals")])
+def update_city_map(n):
+    r = requests.get(apis["dxy"])
+    r.raise_for_status()
+    res = r.json()
+    data = res["data"]["getAreaStat"]
+    cities, confirmeds, suspecteds, cureds, deads = [], [], [], [], []
+    for province in data:
+        # print(f"正在处理 {province['provinceShortName']} ...")
+        if province['provinceShortName'] in municipalities:
+            # print(f"直辖市：{province['provinceShortName']}")
+            cities.append(province['provinceShortName'])
+            confirmeds.append(province['confirmedCount'])
+            suspecteds.append(province["suspectedCount"])
+            cureds.append(province["curedCount"])
+            deads.append(province["deadCount"])
+            continue
+        for city in province['cities']:
+            cities.append(city["cityName"])
+            confirmeds.append(city["confirmedCount"])
+            suspecteds.append(city["suspectedCount"])
+            cureds.append(city["curedCount"])
+            deads.append(city["deadCount"])
+    confirmeds_log = np.log(np.add(confirmeds, 1))
+    df = pd.DataFrame(
+        data={
+            "cities": cities,
+            "confirmeds": confirmeds,
+            "suspecteds": suspecteds,
+            "cureds": cureds,
+            "deads": deads
+        }
+    )
+    df.to_csv('cities_data.csv', index=False, encoding='utf8')
+    fig = go.Figure(
+        go.Choroplethmapbox(
+            featureidkey="properties.NAME",
+            geojson=cities_map,
+            locations=cities,
+            z=confirmeds_log,
+            # zmin=0,
+            # zmax=1000,
+            zauto=True,
+            colorscale="Reds",
+            reversescale=True,
+            marker_opacity=0.8,
+            marker_line_width=0.8,
+            customdata=np.vstack((cities, confirmeds, suspecteds, cureds, deads)).T,
+            hovertemplate="<b>%{customdata[0]}</b><br><br>"
+            + "确诊：%{customdata[1]}<br>"
             + "疑似：%{customdata[1]}<br>"
             + "治愈：%{customdata[2]}<br>"
             + "死亡：%{customdata[3]}<br>"
@@ -291,7 +375,6 @@ def update_map(n):
     )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     return fig
-
 
 if __name__ == "__main__":
     app.run_server(host="0.0.0.0", port=9102, debug=False)
