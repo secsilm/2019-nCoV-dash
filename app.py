@@ -4,6 +4,7 @@ Dash app.
 
 import json
 from datetime import datetime
+import time
 
 import dash
 import dash_core_components as dcc
@@ -21,6 +22,12 @@ import config
 
 app = dash.Dash(__name__)
 colors = ["#E51017", "#FA893A", "#307D47", "#FFFFFF"]
+colorscales = {
+    "confirmeds": "Reds",
+    "suspecteds": "Oranges",
+    "cureds": "Greens",
+    "deads": "gray_r",
+}
 
 ua = UserAgent()
 
@@ -52,7 +59,9 @@ app.layout = html.Div(
         html.H1(children=f"新型冠状病毒 2019-nCoV 疫情趋势", style={"marginLeft": "3%"}),
         html.Div(id="update-time-text", style={"marginLeft": "3%"}),
         dcc.Markdown(
-            description, style={"marginLeft": "3%", "marginRight": "3%"}, highlight_config={"theme": "dark"}
+            description,
+            style={"marginLeft": "3%", "marginRight": "3%"},
+            highlight_config={"theme": "dark"},
         ),
         html.Div(
             id="counts",
@@ -66,7 +75,6 @@ app.layout = html.Div(
                 html.Div(
                     style={
                         "width": "22%",
-                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
                     },
@@ -75,17 +83,16 @@ app.layout = html.Div(
                             id="confirmed-count",
                             label="确诊总计",
                             color=colors[0],
-                            size=50,
+                            size=40,
                             labelPosition="bottom",
-                            theme={'dark': True},
-                            backgroundColor='black'
+                            theme={"dark": True},
+                            backgroundColor="black",
                         )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
                     },
@@ -94,16 +101,15 @@ app.layout = html.Div(
                             id="suspected-count",
                             label="疑似总计",
                             color=colors[1],
-                            size=50,
+                            size=40,
                             labelPosition="bottom",
-                            backgroundColor='black'
+                            backgroundColor="black",
                         )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
                     },
@@ -112,16 +118,15 @@ app.layout = html.Div(
                             id="cured-count",
                             label="治愈总计",
                             color=colors[2],
-                            size=50,
+                            size=40,
                             labelPosition="bottom",
-                            backgroundColor='black'
+                            backgroundColor="black",
                         )
                     ],
                 ),
                 html.Div(
                     style={
                         "width": "22%",
-                        # "backgroundColor": "#cbd2d3",
                         "display": "inline-block",
                         "marginRight": ".8%",
                     },
@@ -130,9 +135,9 @@ app.layout = html.Div(
                             id="dead-count",
                             label="死亡总计",
                             color=colors[3],
-                            size=50,
+                            size=40,
                             labelPosition="bottom",
-                            backgroundColor='black'
+                            backgroundColor="black",
                         )
                     ],
                 ),
@@ -141,37 +146,94 @@ app.layout = html.Div(
         dcc.Interval(
             id="interval-component", interval=config.update_interval, n_intervals=0
         ),
-        dcc.Graph(
-            id="trend",
-            style={
-                "width": "90%",
-                "marginRight": "3%",
-                "marginLeft": "3%",
-                "marginTop": "2%",
-                "marginBottom": "2%",
-            },
+        dcc.Loading(
+            id="loading-trend",
+            children=[
+                dcc.Graph(
+                    id="trend",
+                    style={
+                        "width": "90%",
+                        "marginRight": "3%",
+                        "marginLeft": "3%",
+                        "marginTop": "2%",
+                        "marginBottom": "2%",
+                    },
+                ),
+            ],
+            # 'graph', 'cube', 'circle', 'dot', or 'default'
+            type="graph",
         ),
-        dcc.Graph(
-            id="province-level-map",
-            style={
-                "height": "600px",
-                "width": "90%",
-                "marginRight": "5%",
-                "marginLeft": "5%",
-                "marginTop": "2%",
-                "marginBottom": "2%",
-            },
+        html.Div(
+            [
+                html.H2("省级地图"),
+                html.Span(
+                    dcc.RadioItems(
+                        id="province-radio",
+                        options=[
+                            {"label": "确诊", "value": "confirmeds"},
+                            {"label": "疑似", "value": "suspecteds"},
+                            {"label": "治愈", "value": "cureds"},
+                            {"label": "死亡", "value": "deads"},
+                        ],
+                        value="confirmeds",
+                        labelStyle={"display": "inline-block"},
+                    ),
+                ),
+            ],
+            style={"marginLeft": "3%", "display": "inline-block"},
         ),
-        dcc.Graph(
-            id="city-level-map",
-            style={
-                "height": "600px",
-                "width": "90%",
-                "marginRight": "5%",
-                "marginLeft": "5%",
-                "marginTop": "2%",
-                "marginBottom": "2%",
-            },
+        dcc.Loading(
+            id="loading-province-map",
+            children=[
+                dcc.Graph(
+                    id="province-level-map",
+                    style={
+                        "height": "600px",
+                        "width": "90%",
+                        "marginRight": "5%",
+                        "marginLeft": "5%",
+                        "marginTop": "2%",
+                        "marginBottom": "2%",
+                    },
+                ),
+            ],
+            type="cube",
+        ),
+        html.Div(
+            [
+                html.H2("市级地图"),
+                html.Span(
+                    dcc.RadioItems(
+                        id="city-radio",
+                        options=[
+                            {"label": "确诊", "value": "confirmeds"},
+                            {"label": "疑似", "value": "suspecteds"},
+                            {"label": "治愈", "value": "cureds"},
+                            {"label": "死亡", "value": "deads"},
+                        ],
+                        value="confirmeds",
+                        labelStyle={"display": "inline-block"},
+                    ),
+                ),
+            ],
+            style={"marginLeft": "3%", "display": "inline-block"},
+        ),
+        dcc.Loading(
+            id="loading-city-map",
+            children=[
+                dcc.Graph(
+                    id="city-level-map",
+                    style={
+                        "height": "600px",
+                        "width": "90%",
+                        "marginRight": "5%",
+                        "marginLeft": "5%",
+                        "marginTop": "2%",
+                        "marginBottom": "2%",
+                    },
+                ),
+            ],
+            type="cube",
         ),
     ],
 )
@@ -179,8 +241,11 @@ app.layout = html.Div(
 
 @app.callback(Output("trend", "figure"), [Input("interval-component", "n_intervals")])
 def update_graph(n):
+    start_update = time.time()
     headers = {"User-Agent": ua.random}
+    start = time.time()
     r = requests.get(config.apis["qq"], headers=headers)
+    print(f"请求 qq 接口耗时={time.time() - start} s")
     r.raise_for_status()
     res = r.json()
     data = res["data"]["wuwei_ww_cn_day_counts"]
@@ -232,6 +297,7 @@ def update_graph(n):
     fig.append_trace(trace_cured, 2, 1)
     margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
     fig["layout"].update(margin=margin, showlegend=True, template="plotly_dark")
+    print(f"更新 trend 耗时={time.time() - start_update} s")
     return fig
 
 
@@ -251,9 +317,7 @@ def update_counts(n):
     r.raise_for_status()
     res = r.json()
     with open(
-        f"data/qq_{datetime.now().strftime('%Y%m%d')}.json",
-        "w",
-        encoding="utf-8",
+        f"data/qq_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
     ) as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
     confirmed = res["data"]["wuwei_ww_global_vars"][0]["confirmCount"]
@@ -301,11 +365,15 @@ def update_counts(n):
 
 
 @app.callback(
-    Output("province-level-map", "figure"), [Input("interval-component", "n_intervals")]
+    Output("province-level-map", "figure"),
+    [Input("interval-component", "n_intervals"), Input("province-radio", "value")],
 )
-def update_province_map(n):
+def update_province_map(n, selected_radio):
+    start_update = time.time()
     headers = {"User-Agent": ua.random}
+    start = time.time()
     r = requests.get(config.apis["dxy"], headers=headers)
+    print(f"请求丁香园接口耗时={time.time() - start}s")
     r.raise_for_status()
     res = r.json()
     data = res["data"]["getAreaStat"]
@@ -323,26 +391,25 @@ def update_province_map(n):
     )
     df = pd.DataFrame(
         data={
-            "provinces": provinces,
             "confirmeds": confirmeds,
             "suspecteds": suspecteds,
             "cureds": cureds,
             "deads": deads,
         },
-        columns=["provinces", "confirmeds", "suspecteds", "cureds", "deads"],
+        columns=["confirmeds", "suspecteds", "cureds", "deads"],
+        index=provinces,
     )
-    df.to_csv("provinces_data.csv", index=False, encoding="utf8")
-    confirmeds_log = np.log(np.add(confirmeds, 1))
+    df.to_csv("data/provinces_data.csv", index=True, encoding="utf8")
+    df = df.applymap(np.log)
+    # confirmeds_log = np.log(np.add(confirmeds, 1))
     fig = go.Figure(
         go.Choroplethmapbox(
             featureidkey="properties.NL_NAME_1",
             geojson=provinces_map,
             locations=provinces,
-            z=confirmeds_log,
-            # zmin=0,
-            # zmax=1000,
+            z=df[selected_radio],
             zauto=True,
-            colorscale="BuPu",
+            colorscale=colorscales[selected_radio],
             reversescale=True,
             marker_opacity=0.8,
             marker_line_width=0.8,
@@ -353,7 +420,7 @@ def update_province_map(n):
             + "治愈：%{customdata[3]}<br>"
             + "死亡：%{customdata[4]}<br>"
             + "<extra></extra>",
-            showscale=False
+            showscale=False,
         )
     )
     fig.update_layout(
@@ -363,29 +430,30 @@ def update_province_map(n):
         mapbox_accesstoken=config.token,
     )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    print(f"更新省级地图耗时={time.time() - start_update} s")
     return fig
 
 
 @app.callback(
-    Output("city-level-map", "figure"), [Input("interval-component", "n_intervals")]
+    Output("city-level-map", "figure"),
+    [Input("interval-component", "n_intervals"), Input("city-radio", "value")],
 )
-def update_city_map(n):
+def update_city_map(n, selected_radio):
+    start_update = time.time()
     headers = {"User-Agent": ua.random}
+    start = time.time()
     r = requests.get(config.apis["dxy"], headers=headers)
+    print(f"请求丁香园接口耗时={time.time() - start} s")
     r.raise_for_status()
     res = r.json()
     with open(
-        f"data/dxy_{datetime.now().strftime('%Y%m%d')}.json",
-        "w",
-        encoding="utf-8",
+        f"data/dxy_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
     ) as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
     data = res["data"]["getAreaStat"]
     cities, confirmeds, suspecteds, cureds, deads = [], [], [], [], []
     for province in data:
-        # print(f"正在处理 {province['provinceShortName']} ...")
         if province["provinceShortName"] in municipalities:
-            # print(f"直辖市：{province['provinceShortName']}")
             cities.append(province["provinceShortName"])
             confirmeds.append(province["confirmedCount"])
             suspecteds.append(province["suspectedCount"])
@@ -402,22 +470,23 @@ def update_city_map(n):
     confirmeds_log = np.log(np.add(confirmeds, 1))
     df = pd.DataFrame(
         data={
-            "cities": cities,
             "confirmeds": confirmeds,
             "suspecteds": suspecteds,
             "cureds": cureds,
             "deads": deads,
-        }
+        },
+        index=cities,
     )
-    df.to_csv("cities_data.csv", index=False, encoding="utf8")
+    df.to_csv("data/cities_data.csv", index=True, encoding="utf8")
+    df = df.applymap(np.log)
     fig = go.Figure(
         go.Choroplethmapbox(
             featureidkey="properties.NAME",
             geojson=cities_map,
             locations=cities,
-            z=confirmeds_log,
+            z=df[selected_radio],
             zauto=True,
-            colorscale="PuRd",
+            colorscale=colorscales[selected_radio],
             reversescale=True,
             marker_opacity=0.8,
             marker_line_width=0.8,
@@ -428,7 +497,7 @@ def update_city_map(n):
             + "治愈：%{customdata[3]}<br>"
             + "死亡：%{customdata[4]}<br>"
             + "<extra></extra>",
-            showscale=False
+            showscale=False,
         )
     )
     fig.update_layout(
@@ -438,6 +507,7 @@ def update_city_map(n):
         mapbox_accesstoken=config.token,
     )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    print(f"更新市级地图耗时={time.time() - start_update} s")
     return fig
 
 
