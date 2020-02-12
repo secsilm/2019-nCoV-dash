@@ -1,0 +1,17 @@
+blockquote {
+  border-left: 4px lightgrey solid;
+  padding-left: 1rem;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  margin-left: 0rem;
+  background-color: #666;
+}
+body {
+  color: #FFFFFF;
+  background-color: black;
+}
+a {
+  color: #a76ee7
+}
