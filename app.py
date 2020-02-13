@@ -38,9 +38,6 @@ with open("data/china_cities_github.geojson") as f:
 with open("data/description.md", "r", encoding="utf-8") as f:
     description = f.read()
 
-# print(f"香港 in provinces_map={'香港' in provinces_map.NL_NAME_1.values}")
-# print(f"香港 in cities_map={'香港' in cities_map.NAME.values}")
-
 # 虽然直辖市为省级，但是此处仍将其纳入市级来展示
 # 为了方便起见，台湾也计入其中
 municipalities = ["北京", "上海", "天津", "重庆", "台湾", "香港"]
@@ -257,7 +254,23 @@ def update_graph(n):
         *sorted(zip(dates, confirmeds, suspecteds, deads, cureds))
     )
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
+    new_from_yesterday = pd.DataFrame(
+        data={
+            "confirmeds": confirmeds,
+            "suspecteds": suspecteds,
+            "cureds": cureds,
+            "deads": deads,
+        },
+        index=dates,
+        dtype=int,
+    ).diff(periods=1)
+
+    fig = make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        subplot_titles=["确诊疑似人数堆积面积图", "治愈死亡人数折线图", "较昨日新增确诊、疑似、治愈和死亡人数折线图"],
+    )
     trace_confirmed = go.Scatter(
         x=dates,
         y=confirmeds,
@@ -265,6 +278,7 @@ def update_graph(n):
         mode="lines+markers",
         hovertemplate="确诊：%{y}<extra></extra>",
         name="确诊",
+        stackgroup="one",
     )
     trace_suspected = go.Scatter(
         x=dates,
@@ -273,6 +287,7 @@ def update_graph(n):
         mode="lines+markers",
         hovertemplate="疑似：%{y}<extra></extra>",
         name="疑似",
+        stackgroup="one",
     )
     trace_cured = go.Scatter(
         x=dates,
@@ -290,11 +305,47 @@ def update_graph(n):
         hovertemplate="死亡：%{y}<extra></extra>",
         name="死亡",
     )
+    trace_confirmed_new = go.Scatter(
+        x=dates,
+        y=new_from_yesterday["confirmeds"],
+        marker=dict(color=colors[0]),
+        mode="lines+markers",
+        hovertemplate="新增确诊：%{y}<extra></extra>",
+        name="较昨日新增确诊",
+    )
+    trace_suspected_new = go.Scatter(
+        x=dates,
+        y=new_from_yesterday["suspecteds"],
+        marker=dict(color=colors[1]),
+        mode="lines+markers",
+        hovertemplate="新增疑似：%{y}<extra></extra>",
+        name="较昨日新增疑似",
+    )
+    trace_cured_new = go.Scatter(
+        x=dates,
+        y=new_from_yesterday["cureds"],
+        marker=dict(color=colors[2]),
+        mode="lines+markers",
+        hovertemplate="新增治愈：%{y}<extra></extra>",
+        name="较昨日新增治愈",
+    )
+    trace_dead_new = go.Scatter(
+        x=dates,
+        y=new_from_yesterday["deads"],
+        marker=dict(color=colors[3]),
+        mode="lines+markers",
+        hovertemplate="新增死亡：%{y}<extra></extra>",
+        name="较昨日新增死亡",
+    )
 
     fig.append_trace(trace_confirmed, 1, 1)
     fig.append_trace(trace_suspected, 1, 1)
     fig.append_trace(trace_dead, 2, 1)
     fig.append_trace(trace_cured, 2, 1)
+    fig.append_trace(trace_confirmed_new, 3, 1)
+    fig.append_trace(trace_suspected_new, 3, 1)
+    fig.append_trace(trace_cured_new, 3, 1)
+    fig.append_trace(trace_dead_new, 3, 1)
     margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
     fig["layout"].update(margin=margin, showlegend=True, template="plotly_dark")
     print(f"更新 trend 耗时={time.time() - start_update} s")
