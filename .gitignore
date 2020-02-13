@@ -131,7 +131,7 @@ dmypy.json
 # folders
 test/
 .vscode/
-data/
+history_data/
 
 # files
 .mapboxtoken

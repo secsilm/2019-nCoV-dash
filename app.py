@@ -33,7 +33,7 @@ ua = UserAgent()
 
 with open("data/china_provinces_v2.geojson") as f:
     provinces_map = json.load(f)
-with open("data/china_cities_github.geojson") as f:
+with open("data/china_cities_v2.geojson") as f:
     cities_map = json.load(f)
 with open("data/description.md", "r", encoding="utf-8") as f:
     description = f.read()
@@ -368,7 +368,7 @@ def update_counts(n):
     r.raise_for_status()
     res = r.json()
     with open(
-        f"data/qq_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
+        f"history_data/qq_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
     ) as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
     confirmed = res["data"]["wuwei_ww_global_vars"][0]["confirmCount"]
@@ -383,7 +383,7 @@ def update_counts(n):
         r.raise_for_status()
         res = r.json()
         with open(
-            f"data/province_city_history_{datetime.now().strftime('%Y%m%d')}.json",
+            f"history_data/province_city_history_{datetime.now().strftime('%Y%m%d')}.json",
             "w",
             encoding="utf-8",
         ) as f:
@@ -398,7 +398,7 @@ def update_counts(n):
         r.raise_for_status()
         res = r.json()
         with open(
-            f"data/dxy_minutes_history_{datetime.now().strftime('%Y%m%d')}.json",
+            f"history_data/dxy_minutes_history_{datetime.now().strftime('%Y%m%d')}.json",
             "w",
             encoding="utf-8",
         ) as f:
@@ -450,7 +450,7 @@ def update_province_map(n, selected_radio):
         columns=["confirmeds", "suspecteds", "cureds", "deads"],
         index=provinces,
     )
-    df.to_csv("data/provinces_data.csv", index=True, encoding="utf8")
+    df.to_csv("history_data/provinces_data.csv", index=True, encoding="utf8")
     df = df.applymap(np.log)
     # confirmeds_log = np.log(np.add(confirmeds, 1))
     fig = go.Figure(
@@ -498,7 +498,7 @@ def update_city_map(n, selected_radio):
     r.raise_for_status()
     res = r.json()
     with open(
-        f"data/dxy_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
+        f"history_data/dxy_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
     ) as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
     data = res["data"]["getAreaStat"]
@@ -528,7 +528,7 @@ def update_city_map(n, selected_radio):
         },
         index=cities,
     )
-    df.to_csv("data/cities_data.csv", index=True, encoding="utf8")
+    df.to_csv("history_data/cities_data.csv", index=True, encoding="utf8")
     df = df.applymap(np.log)
     fig = go.Figure(
         go.Choroplethmapbox(
