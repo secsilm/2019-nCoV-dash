@@ -24,7 +24,7 @@ def save_province_city_history():
         r.raise_for_status()
         res = r.json()
         with open(
-            f"history_dataprovince_city_history_{datetime.now().strftime('%Y%m%d')}.json",
+            f"history_data/province_city_history_{datetime.now().strftime('%Y%m%d')}.json",
             "w",
             encoding="utf-8",
         ) as f:
@@ -44,7 +44,7 @@ def save_dxy_minutes_history():
         r.raise_for_status()
         res = r.json()
         with open(
-            f"history_datadxy_minutes_history_{datetime.now().strftime('%Y%m%d')}.json",
+            f"history_data/dxy_minutes_history_{datetime.now().strftime('%Y%m%d')}.json",
             "w",
             encoding="utf-8",
         ) as f:
