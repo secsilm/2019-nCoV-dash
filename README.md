@@ -10,6 +10,14 @@ python app.py
 
 然后打开 `http://localhost:9102/` 即可。
 
+如果使用的是 Linux 服务器，则可以使用 gunicorn 来部署：
+
+```bash
+gunicorn -c config.py app:server
+```
+
+同时修改 [`logging_config.yml`](./logging_config.yml) 中的 `loggers`，将 `__main__` 修改为 `app` 即可。
+
 ![homepage](./screenshots/homepage.png)
 
 ## References

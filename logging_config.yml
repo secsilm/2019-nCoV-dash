@@ -19,6 +19,7 @@ handlers:
     formatter: default
 
 loggers:
+  # Change __main__ to app if using gunicorn
   __main__:
     handlers: [file, console]
     level: DEBUG

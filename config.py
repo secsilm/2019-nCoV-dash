@@ -52,5 +52,5 @@ timeout = 120
 loglevel = 'info'
 accesslog = "log/gunicorn_access.log"
 errorlog = "log/gunicorn_error.log"
-daemon = False
+daemon = True
 pidfile = 'gunicorn.pid'
