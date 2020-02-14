@@ -1,10 +1,13 @@
 """
-Dash app.
+Main app.
 """
 
+import concurrent.futures
 import json
-from datetime import datetime
+import logging
+import logging.config
 import time
+from datetime import datetime
 
 import dash
 import dash_core_components as dcc
@@ -14,13 +17,21 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 import requests
+import yaml
 from dash.dependencies import Input, Output
-from plotly.subplots import make_subplots
 from fake_useragent import UserAgent
+from plotly.subplots import make_subplots
 
 import config
+import utils
+
+with open("logging_config.yml", "r", encoding="utf8") as f:
+    logging_config = yaml.safe_load(f)
+logging.config.dictConfig(logging_config)
+logger = logging.getLogger(__name__)
 
 app = dash.Dash(__name__)
+server = app.server
 colors = ["#E51017", "#FA893A", "#307D47", "#FFFFFF"]
 colorscales = {
     "confirmeds": "Reds",
@@ -29,9 +40,9 @@ colorscales = {
     "deads": "gray_r",
 }
 
-ua = UserAgent()
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-with open("data/china_provinces_v2.geojson") as f:
+with open("data/china_provinces_v3.geojson") as f:
     provinces_map = json.load(f)
 with open("data/china_cities_v2.geojson") as f:
     cities_map = json.load(f)
@@ -42,18 +53,12 @@ with open("data/description.md", "r", encoding="utf-8") as f:
 # 为了方便起见，台湾也计入其中
 municipalities = ["北京", "上海", "天津", "重庆", "台湾", "香港"]
 
-
-def uniform_city_name(cn):
-    if cn not in config.exceptions:
-        cn = cn.rstrip("地区")
-    cn = config.replace_map.get(cn, cn)
-    return cn
-
-
-app.title = f"新型冠状病毒 2019-nCoV 疫情趋势"
+app.title = f"COVID-19 疫情趋势"
 app.layout = html.Div(
     [
-        html.H1(children=f"新型冠状病毒 2019-nCoV 疫情趋势", style={"marginLeft": "3%"}),
+        html.H1(
+            children=f"新型冠状病毒（2019-nCoV）肺炎（COVID-19）疫情趋势", style={"marginLeft": "3%"}
+        ),
         html.Div(id="update-time-text", style={"marginLeft": "3%"}),
         dcc.Markdown(
             description,
@@ -236,13 +241,51 @@ app.layout = html.Div(
 )
 
 
+@app.callback(
+    [
+        Output("update-time-text", "children"),
+        Output("confirmed-count", "value"),
+        Output("suspected-count", "value"),
+        Output("dead-count", "value"),
+        Output("cured-count", "value"),
+    ],
+    [Input("interval-component", "n_intervals")],
+)
+def update_counts(n):
+    """更新当前确诊、疑似、治愈和死亡人数。"""
+    headers = {"User-Agent": utils.ua.random}
+    r = requests.get(config.apis["qq"], headers=headers)
+    r.raise_for_status()
+    res = r.json()
+    with open(
+        f"history_data/qq_{datetime.now().strftime('%Y%m%d')}.json",
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(res, f, ensure_ascii=False, indent=4)
+    confirmed = res["data"]["wuwei_ww_global_vars"][0]["confirmCount"]
+    suspected = res["data"]["wuwei_ww_global_vars"][0]["suspectCount"]
+    dead = res["data"]["wuwei_ww_global_vars"][0]["deadCount"]
+    cured = res["data"]["wuwei_ww_global_vars"][0]["cure"]
+    update_time = res["data"]["wuwei_ww_global_vars"][0]["update_time"]
+
+    future1 = executor.submit(utils.save_province_city_history)
+    future2 = executor.submit(utils.save_dxy_minutes_history)
+
+    return (
+        f'更新时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}，每 {config.update_interval // 60000} 分钟更新一次。',
+        f"{confirmed:05d}",
+        f"{suspected:05d}",
+        f"{dead:05d}",
+        f"{cured:05d}",
+    )
+
+
 @app.callback(Output("trend", "figure"), [Input("interval-component", "n_intervals")])
 def update_graph(n):
-    start_update = time.time()
-    headers = {"User-Agent": ua.random}
-    start = time.time()
+    """更新面积图和折线图。"""
+    headers = {"User-Agent": utils.ua.random}
     r = requests.get(config.apis["qq"], headers=headers)
-    print(f"请求 qq 接口耗时={time.time() - start} s")
     r.raise_for_status()
     res = r.json()
     data = res["data"]["wuwei_ww_cn_day_counts"]
@@ -348,71 +391,7 @@ def update_graph(n):
     fig.append_trace(trace_dead_new, 3, 1)
     margin = go.layout.Margin(l=100, r=100, b=50, t=25, pad=4)
     fig["layout"].update(margin=margin, showlegend=True, template="plotly_dark")
-    print(f"更新 trend 耗时={time.time() - start_update} s")
     return fig
-
-
-@app.callback(
-    [
-        Output("update-time-text", "children"),
-        Output("confirmed-count", "value"),
-        Output("suspected-count", "value"),
-        Output("dead-count", "value"),
-        Output("cured-count", "value"),
-    ],
-    [Input("interval-component", "n_intervals")],
-)
-def update_counts(n):
-    headers = {"User-Agent": ua.random}
-    r = requests.get(config.apis["qq"], headers=headers)
-    r.raise_for_status()
-    res = r.json()
-    with open(
-        f"history_data/qq_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
-    ) as f:
-        json.dump(res, f, ensure_ascii=False, indent=4)
-    confirmed = res["data"]["wuwei_ww_global_vars"][0]["confirmCount"]
-    suspected = res["data"]["wuwei_ww_global_vars"][0]["suspectCount"]
-    dead = res["data"]["wuwei_ww_global_vars"][0]["deadCount"]
-    cured = res["data"]["wuwei_ww_global_vars"][0]["cure"]
-    update_time = res["data"]["wuwei_ww_global_vars"][0]["update_time"]
-
-    # 省市每日历史数据
-    try:
-        r = requests.get("http://ncov.nosensor.com:8080/api/", headers=headers)
-        r.raise_for_status()
-        res = r.json()
-        with open(
-            f"history_data/province_city_history_{datetime.now().strftime('%Y%m%d')}.json",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(res, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        print(f"保存省市每日历史数据出错。{e}")
-    # 丁香园每分钟历史数据
-    try:
-        r = requests.get(
-            "http://lab.isaaclin.cn/nCoV/api/area?latest=0", headers=headers
-        )
-        r.raise_for_status()
-        res = r.json()
-        with open(
-            f"history_data/dxy_minutes_history_{datetime.now().strftime('%Y%m%d')}.json",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(res, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        print(f"保存丁香园每分钟历史数据出错。{e}")
-
-    return (
-        f'更新时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}，每 {config.update_interval // 60000} 分钟更新一次。',
-        f"{confirmed:05d}",
-        f"{suspected:05d}",
-        f"{dead:05d}",
-        f"{cured:05d}",
-    )
 
 
 @app.callback(
@@ -420,11 +399,9 @@ def update_counts(n):
     [Input("interval-component", "n_intervals"), Input("province-radio", "value")],
 )
 def update_province_map(n, selected_radio):
-    start_update = time.time()
-    headers = {"User-Agent": ua.random}
-    start = time.time()
+    """更新省级地图。"""
+    headers = {"User-Agent": utils.ua.random}
     r = requests.get(config.apis["dxy"], headers=headers)
-    print(f"请求丁香园接口耗时={time.time() - start}s")
     r.raise_for_status()
     res = r.json()
     data = res["data"]["getAreaStat"]
@@ -452,7 +429,6 @@ def update_province_map(n, selected_radio):
     )
     df.to_csv("history_data/provinces_data.csv", index=True, encoding="utf8")
     df = df.applymap(np.log)
-    # confirmeds_log = np.log(np.add(confirmeds, 1))
     fig = go.Figure(
         go.Choroplethmapbox(
             featureidkey="properties.NL_NAME_1",
@@ -481,7 +457,6 @@ def update_province_map(n, selected_radio):
         mapbox_accesstoken=config.token,
     )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-    print(f"更新省级地图耗时={time.time() - start_update} s")
     return fig
 
 
@@ -490,15 +465,15 @@ def update_province_map(n, selected_radio):
     [Input("interval-component", "n_intervals"), Input("city-radio", "value")],
 )
 def update_city_map(n, selected_radio):
-    start_update = time.time()
-    headers = {"User-Agent": ua.random}
-    start = time.time()
+    """更新市级地图。"""
+    headers = {"User-Agent": utils.ua.random}
     r = requests.get(config.apis["dxy"], headers=headers)
-    print(f"请求丁香园接口耗时={time.time() - start} s")
     r.raise_for_status()
     res = r.json()
     with open(
-        f"history_data/dxy_{datetime.now().strftime('%Y%m%d')}.json", "w", encoding="utf-8",
+        f"history_data/dxy_{datetime.now().strftime('%Y%m%d')}.json",
+        "w",
+        encoding="utf-8",
     ) as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
     data = res["data"]["getAreaStat"]
@@ -517,8 +492,7 @@ def update_city_map(n, selected_radio):
             suspecteds.append(city["suspectedCount"])
             cureds.append(city["curedCount"])
             deads.append(city["deadCount"])
-    cities = [uniform_city_name(cn) for cn in cities]
-    confirmeds_log = np.log(np.add(confirmeds, 1))
+    cities = [utils.uniform_city_name(cn) for cn in cities]
     df = pd.DataFrame(
         data={
             "confirmeds": confirmeds,
@@ -556,9 +530,8 @@ def update_city_map(n, selected_radio):
         mapbox_zoom=3,
         mapbox_center={"lat": 35.110573, "lon": 106.493924},
         mapbox_accesstoken=config.token,
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
     )
-    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-    print(f"更新市级地图耗时={time.time() - start_update} s")
     return fig
 
 

@@ -1,0 +1,39 @@
+version: 1
+
+formatters:
+  default:
+    format: "[%(asctime)s] [%(name)s] [%(levelname)s] [%(funcName)s] [%(processName)s] [%(threadName)s]: %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: default
+
+  file:
+    class: logging.handlers.TimedRotatingFileHandler
+    level: DEBUG
+    filename: log/app.log
+    when: midnight
+    encoding: utf-8
+    formatter: default
+
+loggers:
+  __main__:
+    handlers: [file, console]
+    level: DEBUG
+    propagate: false
+  utils:
+    handlers: [file, console]
+    level: DEBUG
+    propagate: false
+  urllib3:
+    handlers: [file, console]
+    level: DEBUG
+    propagate: false
+  werkzeug:
+    handlers: [file, console]
+    level: DEBUG
+    propagate: false
+
+disable_existing_loggers: false

@@ -42,3 +42,15 @@ replace_map = {
 
 exceptions = []
 
+# gunicorn config
+workers = 1
+# threads = 4
+bind = '0.0.0.0:9102'
+worker_class = 'gevent'
+worker_connections = 1500
+timeout = 120
+loglevel = 'info'
+accesslog = "log/gunicorn_access.log"
+errorlog = "log/gunicorn_error.log"
+daemon = False
+pidfile = 'gunicorn.pid'
