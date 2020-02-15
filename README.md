@@ -1,6 +1,6 @@
 # 2019-nCoV 疫情展示
 
-本项目用于展示新型冠状病毒 2019-nCoV 疫情展示，使用 [dash](https://plot.ly/dash/) 制作。
+本项目用于新型冠状病毒（2019-nCoV）肺炎（COVID-19）疫情展示，使用 [dash](https://plot.ly/dash/) 制作。
 
 ## 使用
 
@@ -22,7 +22,7 @@ gunicorn -c config.py app:server
 
 ## 关于 .mapboxtoken
 
-配置文件 [`config.py`](./config.py) 中涉及到了 `.mapboxtoken` 文件，但这并不包含在仓库中。因为并不一定需要，具体什么时候需要这个 token，取决于你使用的 mapbox 地图风格，这一次参数通过 `go.Choroplethmapbox` 的 `mapbox_style` 来指定。简单来说，当你使用如下地图风格之一时，你就需要这个 token 了：
+配置文件 [`config.py`](./config.py) 中涉及到了 `.mapboxtoken` 文件，但这并不包含在仓库中。因为并不一定需要，具体什么时候需要这个 token，取决于你使用的 mapbox 地图风格，这一参数通过 `go.Choroplethmapbox` 的 `mapbox_style` 来指定。简单来说，当你使用如下地图风格之一时，你就需要这个 token 了：
 
 ```python
 ["basic", "streets", "outdoors", "light", "dark", "satellite", "satellite-streets"]
