@@ -20,6 +20,18 @@ gunicorn -c config.py app:server
 
 ![homepage](./screenshots/homepage.png)
 
+## 关于 .mapboxtoken
+
+配置文件 [`config.py`](./config.py) 中涉及到了 `.mapboxtoken` 文件，但这并不包含在仓库中。因为并不一定需要，具体什么时候需要这个 token，取决于你使用的 mapbox 地图风格，这一次参数通过 `go.Choroplethmapbox` 的 `mapbox_style` 来指定。简单来说，当你使用如下地图风格之一时，你就需要这个 token 了：
+
+```python
+["basic", "streets", "outdoors", "light", "dark", "satellite", "satellite-streets"]
+```
+
+如果你需要这个 token，可以去 [mapbox 官网](https://www.mapbox.com/)注册并登录账号，然后点击右上角你的头像，点击 `Account`，然后点击 `Create a token`，根据提示创建即可。
+
+![create-a-token](./screenshots/mapbox-token.png)
+
 ## References
 
 - [Mapbox Map Layers | Python | Plotly](https://plot.ly/python/mapbox-layers/)

@@ -4,6 +4,10 @@ apis = {
     "dxy": "https://service-0gg71fu4-1252957949.gz.apigw.tencentcs.com/release/dingxiangyuan",
     "province_city_history": "http://ncov.nosensor.com:8080/api/",
 }
+# You may not have to use mapboxtoken. It depends on what mapbox style you use.
+# For more information, please see https://plot.ly/python/mapbox-layers/
+# If you have to use it, you can create a file named .mapboxtoken and
+# put your token in it.
 with open(".mapboxtoken", "r") as f:
     token = f.read()
 
@@ -45,12 +49,12 @@ exceptions = []
 # gunicorn config
 workers = 1
 # threads = 4
-bind = '0.0.0.0:9102'
-worker_class = 'gevent'
+bind = "0.0.0.0:9102"
+worker_class = "gevent"
 worker_connections = 1500
 timeout = 120
-loglevel = 'info'
+loglevel = "info"
 accesslog = "log/gunicorn_access.log"
 errorlog = "log/gunicorn_error.log"
 daemon = True
-pidfile = 'gunicorn.pid'
+pidfile = "gunicorn.pid"
