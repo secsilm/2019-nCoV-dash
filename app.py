@@ -384,8 +384,8 @@ def generate_province_city_datafile():
 def update_graph_and_counts(n):
     """更新面积图、折线图和当前确诊、疑似、治愈和死亡人数。"""
 
-    # future1 = executor.submit(utils.save_province_city_history)
-    # future2 = executor.submit(utils.save_dxy_minutes_history)
+    future1 = executor.submit(utils.save_province_city_history)
+    future2 = executor.submit(utils.save_dxy_minutes_history)
 
     headers = {"User-Agent": utils.ua.random}
     r = requests.get(config.apis["isaaclin_overall_history"], headers=headers)
