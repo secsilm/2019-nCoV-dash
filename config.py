@@ -1,8 +1,15 @@
 update_interval = 60 * 60 * 1000  # ms
+# 网友自制的全国新型肺炎疫情实时数据接口：https://lab.isaaclin.cn/nCoV/
 apis = {
     "qq": "https://service-n9zsbooc-1252957949.gz.apigw.tencentcs.com/release/qq",
     "dxy": "https://service-0gg71fu4-1252957949.gz.apigw.tencentcs.com/release/dingxiangyuan",
     "province_city_history": "http://ncov.nosensor.com:8080/api/",
+    'qq_province': 'https://api.inews.qq.com/newsqa/v1/query/pubished/daily/list?province=省份名称',
+    'qq_province_city': 'https://api.inews.qq.com/newsqa/v1/query/pubished/daily/list?province=省份名称&city=城市名称',
+    'isaaclin_overall_latest': 'https://lab.isaaclin.cn/nCoV/api/overall?latest=1',
+    'isaaclin_overall_history': 'https://lab.isaaclin.cn/nCoV/api/overall?latest=0',
+    'isaaclin_area_latest': 'https://lab.isaaclin.cn/nCoV/api/area?latest=1',
+    'isaaclin_area_history': 'https://lab.isaaclin.cn/nCoV/api/area?latest=0'
 }
 # You may not have to use mapboxtoken. It depends on what mapbox style you use.
 # For more information, please see https://plot.ly/python/mapbox-layers/

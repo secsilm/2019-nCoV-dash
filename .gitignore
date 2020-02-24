@@ -131,7 +131,9 @@ dmypy.json
 # folders
 test/
 .vscode/
+assets/figures
 
 # files
 .mapboxtoken
 *.ipynb
+assets/*.mp4
