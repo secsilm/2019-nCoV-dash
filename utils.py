@@ -7,7 +7,8 @@ from pathlib import Path
 import shutil
 
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import geopandas
 import matplotlib.pyplot as plt
 import numpy as np
@@ -66,14 +67,18 @@ def save_dxy_minutes_history():
         logger.error(f"保存丁香园每分钟历史数据出错。", exc_info=True)
     logger.info("[结束] 保存丁香园每分钟历史数据")
 
+
 def timestamp2datetime(ts):
     return datetime.fromtimestamp(ts)
 
-def generate_figures(history, geomap, locations_list, start_date, end_date, dpi, figdir):
+
+def generate_figures(
+    history, geomap, locations_list, start_date, end_date, dpi, figdir
+):
     # 哪个省在什么时间点的确诊、疑似、治愈、死亡人数
     # 省份，确诊，疑似，治愈，死亡，时间
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    end_date = datetime.strptime(f"{end_date} 23:59:59", '%Y-%m-%d %H:%M:%S')
+    start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(f"{end_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
 
     def plot_one_date(dt, geomap, times_dict, locations_list, filename):
         plot_data = []
@@ -85,7 +90,7 @@ def generate_figures(history, geomap, locations_list, start_date, end_date, dpi,
         plot_series = pd.Series(plot_data, index=locations_list) + 1
         geomap.plot(plot_series.map(np.log), figsize=(5, 3))
         plt.axis("off")
-        plt.text(93, 50, dt.replace('_', ' '), fontsize=10)
+        plt.text(93, 50, dt.replace("_", " "), fontsize=10)
         plt.tight_layout()
         plt.savefig(f"{figdir}/{filename}.png", dpi=dpi)
         plt.close()
@@ -95,7 +100,7 @@ def generate_figures(history, geomap, locations_list, start_date, end_date, dpi,
         "内蒙古": "内蒙古自治区",
         "宁夏": "宁夏回族自治区",
         "新疆": "新疆维吾尔自治区",
-        "西藏": "西藏自治区"
+        "西藏": "西藏自治区",
     }
     provinces, confirmeds, suspecteds, cureds, deads, times = [], [], [], [], [], []
     for r in history["results"]:
@@ -164,22 +169,33 @@ def generate_figures(history, geomap, locations_list, start_date, end_date, dpi,
             )
         last_time = k
 
-
     # 循环绘制多个 figures
     for i, k in progressbar(enumerate(times_dict)):
         plot_one_date(k, geomap, times_dict, locations_list, str(i))
 
+
 def generate_video(image_pattern, videoname, fps):
-    '''根据 image_pattern 指定的图片集生成名为 videoname 的视频，帧率由 fps 指定。'''
+    """根据 image_pattern 指定的图片集生成名为 videoname 的视频，帧率由 fps 指定。"""
     cmd = f"ffmpeg -r {fps} -f image2 -s 1920x1080 -i {image_pattern} -vcodec libx264 -crf 25  -pix_fmt yuv420p {videoname}"
     logger.info(f"cmd={cmd}")
     subprocess.run(cmd)
 
 
 def rmfigures(figdir):
-    logger.info(f'正在删除 {figdir} 中的 PNG 文件 ...')
+    logger.info(f"正在删除 {figdir} 中的 PNG 文件 ...")
     count = 0
-    for fname in Path(figdir).glob('*.png'):
+    for fname in Path(figdir).glob("*.png"):
         fname.unlink()
         count += 1
     logger.info(f"共删除 {count} 份 PNG 文件")
+
+
+def get_cmap_hex(cmap, n):
+    hexcolors = []
+    cm = matplotlib.cm.get_cmap(cmap, n)
+    for i in range(cm.N):
+        rgb = cm(i)[:3] # will return rgba, we take only first 3 so we get rgb
+        hexcolors.append(matplotlib.colors.rgb2hex(rgb))
+    # 如果你想要可视化这些颜色，可以使用如下语句，前提是需要 import seaborn as sns
+    # sns.palplot(hexcolors)
+    return hexcolors
