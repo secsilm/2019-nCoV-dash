@@ -1,5 +1,7 @@
 # 2019-nCoV 疫情展示
 
+**2020-05-25：由于接口不可用和时间原因，目前页面已停止访问。可点击[此处](https://northcloudgate.com/2019ncov/#dashboard)查看其他 dashboard。**
+
 本项目用于新型冠状病毒（2019-nCoV）肺炎（COVID-19）疫情展示，使用 [dash](https://plot.ly/dash/) 制作。
 
 ## 使用
